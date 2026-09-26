@@ -1,49 +1,54 @@
-const fs = require('fs');
-const EventEmitter = require('events');
+const http = require('http');
+const server = http.createServer((req, res) => {
+res.setHeader('Content-Type', 'text/plain');
+res.write('Hello World\n');
 
-// Create an instance of EventEmitter
-const myEmitter = new EventEmitter();
-
-// Object to store content from both files
-const filesData = {};
-
-// 1. Event listener for file merging
-myEmitter.on('mergeFiles', (data) => {
-  const combinedContent = data.file1 + '\n\n' + data.file2;
-
-  // Write merged content to output.txt (Non-blocking Async)
-  fs.writeFile('output.txt', combinedContent, 'utf8', (err) => {
-    if (err) {
-      console.error('Error writing file:', err);
-      return;
+if (req.url === '/' && req.method === 'GET') {
+        res.end(JSON.stringify({ message: 'welcome to homepage' }));
     }
-    console.log('Files merged successfully into output.txt!');
-  });
+    else if (req.url === '/api/users' && req.method === 'GET') {
+        const users = [
+            { id: 1, name: 'ali', age: 25 },
+            { id: 2, name: 'sara', age: 30 }
+        ];
+        res.end(JSON.stringify(users));
+    }
+    else if (req.url === '/api/products' && req.method === 'GET') {
+        const products = [
+            { lab: 'lab1', price: 1000 },
+            { pc: 'pc1', price: 2000 }
+        ];
+        res.end(JSON.stringify(products));
+    }
+
+
+    else if (req.url === '/api/users' && req.method === 'POST') {
+        let body = '';
+
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+
+
+        req.on('end', () => {
+            const parsedData = body ? JSON.parse(body) : {};
+            
+            res.statusCode = 201;
+            res.end(JSON.stringify({
+                message: 'Data received and saved successfully',
+                data: parsedData
+            }));
+        });
+    }
+    else {
+        res.statusCode = 404;
+        res.end(JSON.stringify({ message: 'page not found' }));
+    }
+
+
+
+
 });
-
-// Function to check if both files have been read
-function checkAndEmit() {
-  if (filesData.file1 !== undefined && filesData.file2 !== undefined) {
-    myEmitter.emit('mergeFiles', filesData);
-  }
-}
-
-// 2. Read the first file (Non-blocking Async)
-fs.readFile('file1.txt', 'utf8', (err, data) => {
-  if (err) {
-    console.error('Error reading file1.txt:', err);
-    return;
-  }
-  filesData.file1 = data;
-  checkAndEmit();
-});
-
-// 3. Read the second file (Non-blocking Async)
-fs.readFile('file2.txt', 'utf8', (err, data) => {
-  if (err) {
-    console.error('Error reading file2.txt:', err);
-    return;
-  }
-  filesData.file2 = data;
-  checkAndEmit();
+server.listen(3000, () => {
+    console.log('Server is running on http://localhost:3000');
 });
